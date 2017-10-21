@@ -1,8 +1,8 @@
 # cable_stackdriver
 
 <p align="center">
-  <a href="https://travis-ci.org/matanlurey/cable_stackdriver">
-    <img src="https://travis-ci.org/matanlurey/cable_stackdriver.svg?branch=master" alt="Build Status" />
+  <a href="https://travis-ci.org/matanlurey/cable-stackdriver">
+    <img src="https://travis-ci.org/matanlurey/cable-stackdriver.svg?branch=master" alt="Build Status" />
   </a>
   <a href="https://pub.dartlang.org/packages/cable_stackdriver">
     <img src="https://img.shields.io/pub/v/cable_stackdriver.svg" alt="Pub Package Version" />
