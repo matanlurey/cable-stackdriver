@@ -1,0 +1,12 @@
+name: cable_stackdriver_server_example
+
+environment:
+  sdk: ">=2.0.0-dev <2.0.0"
+
+dependencies:
+  # Normally this would be
+  #   cable_stackdriver: ^0.1.0
+  #
+  # But we want to keep the example in sync.
+  cable_stackdriver:
+    path: ../../
