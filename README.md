@@ -40,8 +40,9 @@ You can use Stackdriver on the server with a Google Cloud [service account][].
 [service account]: https://cloud.google.com/logging/docs/agent/authorization
 
 Once you have a `<key>.json` file, with the scope
-`https://www.googleapis.com/auth/logging.write`, you can create a `Stackdriver`
-object:
+* `https://www.googleapis.com/auth/logging.write`
+
+...you can create a `Stackdriver` object:
 
 ```dart
 import 'dart:async';
