@@ -10,12 +10,17 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart';
 import 'package:meta/meta.dart';
 
-@immutable
+/// Connects and uses the Google Cloud Logging (Stackdriver) API.
 class Stackdriver<T extends Object> implements Sink<Record<T>> {
   final api.LoggingApi _api;
   final Map<String, Object> Function(T record) _toJson;
 
   final Client _client;
+
+  Timer _buffer;
+  final String _logName;
+  final Duration _bufferTime;
+  final _pending = <api.LogEntry>[];
   final _waiting = <Future<Object>>[];
 
   /// Creates a new [Stackdriver] logging client for a service account.
@@ -28,12 +33,17 @@ class Stackdriver<T extends Object> implements Sink<Record<T>> {
   ///
   /// May optionally define a [baseClient] for HTTP access.
   ///
+  /// If [logName] is provided, it is used instead of [Record.origin]. This is
+  /// **highly suggested**, and relying on [Record.origin] is now _deprecated_.
+  ///
   /// If [toJson] is provided, [Record.payload] ([T]) is encoded by it.
   ///
   /// Returns a future that completes once authenticated.
   static Future<Stackdriver<T>> serviceAccount<T>(
     Map<String, Object> json, {
     BaseClient baseClient,
+    String logName,
+    Duration buffer: const Duration(seconds: 1),
     Map<String, Object> Function(T record) toJson,
   }) async {
     if (!const bool.fromEnvironment('dart.library.io')) {
@@ -46,7 +56,12 @@ class Stackdriver<T extends Object> implements Sink<Record<T>> {
       ],
       baseClient: baseClient,
     );
-    return new Stackdriver.fromHttp(httpClient, toJson: toJson);
+    return new Stackdriver.fromHttp(
+      httpClient,
+      logName: logName,
+      buffer: buffer,
+      toJson: toJson,
+    );
   }
 
   /// Creates a new [Stackdriver] logging client from an [httpClient].
@@ -54,26 +69,35 @@ class Stackdriver<T extends Object> implements Sink<Record<T>> {
   /// This is considered a lower-level API for more customized connections.
   factory Stackdriver.fromHttp(
     Client httpClient, {
+    String logName,
+    Duration buffer: const Duration(seconds: 1),
     Map<String, Object> Function(T record) toJson,
   }) =>
       new Stackdriver._(
         new api.LoggingApi(httpClient),
         httpClient,
+        logName: logName,
+        buffer: buffer,
         toJson: toJson,
       );
 
   Stackdriver._(
     this._api,
     this._client, {
+    @required String logName,
+    Duration buffer: const Duration(seconds: 1),
     Map<String, Object> Function(T record) toJson,
   })
-      : _toJson = toJson;
+      : _bufferTime = buffer,
+        _logName = logName,
+        _toJson = toJson;
 
   @override
   void add(Record<T> data) {
     final entry = new api.LogEntry()
       ..resource = (new api.MonitoredResource()..type = 'global')
       ..timestamp = '${data.timestamp.toIso8601String()}Z'
+      ..labels = {'from': data.origin}
       ..severity = const {
             Severity.debug: 'DEBUG',
             Severity.info: 'INFO',
@@ -94,18 +118,33 @@ class Stackdriver<T extends Object> implements Sink<Record<T>> {
       }
       entry.jsonPayload = _toJson(payload);
     }
+    _pending.add(entry);
+    if (_bufferTime != Duration.ZERO) {
+      final completer = new Completer<Null>.sync();
+      _waiting.add(completer.future);
+      _buffer ??= new Timer(_bufferTime, () {
+        completer.complete();
+        _flushBuffer();
+      });
+    }
+  }
+
+  void _flushBuffer() {
     final future = _api.entries
         .write(
           new api.WriteLogEntriesRequest()
-            ..logName = data.origin
-            ..entries = [entry],
+            ..logName = _logName
+            ..entries = _pending,
         )
         .whenComplete(() => null);
     _waiting.add(future.then((_) => _waiting.remove(future)));
   }
 
   @override
-  void close() => _client.close();
+  void close() {
+    _buffer?.cancel();
+    _client.close();
+  }
 
   /// Completes when all pending writes have completed.
   Future<Null> get onIdle => Future.wait(_waiting).then((_) => null);
