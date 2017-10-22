@@ -51,14 +51,15 @@ import 'package:cable_stackdriver/cable_stackdriver.dart';
 
 Future<Null> main() async {
   final jsonConfig = loadJsonFile();
-  final stackdriver = await Stackdriver.serviceAccount<String>(jsonConfig);
+  final stackdriver = await Stackdriver.serviceAccount<String>(
+    jsonConfig,
+    logName: 'projects/${jsonConfig['project_id']}/logs/example',
+  );
   final logger = new Logger(
     destinations: [
       // Also write to console.
       stackdriver,
     ],
-    // This exact format is required to log to Google cloud.
-    name: 'projects/${jsonConfig['project_id']}/logs/example',
   );
 
   // You can now use the logger.
@@ -107,5 +108,5 @@ $ pub run test
 [analysis_options]: analysis_options.yaml
 [travis]: https://travis-ci.org/
 [dev_sdk]: https://www.dartlang.org/install]
-[file_an_issue]: https://github.com/matanlurey/cable_stackdriver/issues/new
-[pull_request]: https://github.com/matanlurey/cable_stackdriver/pulls
+[file_an_issue]: https://github.com/matanlurey/cable-stackdriver/issues/new
+[pull_request]: https://github.com/matanlurey/cable-stackdriver/pulls

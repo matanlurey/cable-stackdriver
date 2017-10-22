@@ -9,4 +9,4 @@ dependencies:
   #
   # But we want to keep the example in sync.
   cable_stackdriver:
-    path: ../../
+    path: ../
