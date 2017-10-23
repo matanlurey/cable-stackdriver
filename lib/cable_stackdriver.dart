@@ -134,9 +134,10 @@ class Stackdriver<T extends Object> implements Sink<Record<T>> {
         .write(
           new api.WriteLogEntriesRequest()
             ..logName = _logName
-            ..entries = _pending,
+            ..entries = _pending.toList(),
         )
         .whenComplete(() => null);
+    _pending.clear();
     _waiting.add(future.then((_) => _waiting.remove(future)));
     _buffer = null;
   }
